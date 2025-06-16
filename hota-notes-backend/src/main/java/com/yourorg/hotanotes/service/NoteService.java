@@ -33,6 +33,7 @@ public class NoteService {
         Note existing = findById(id);
         existing.setTitle(updatedData.getTitle());
         existing.setContent(updatedData.getContent());
+        existing.setCategory(updatedData.getCategory());
         return repo.save(existing); // updatedAt will change via @PreUpdate
     }
 

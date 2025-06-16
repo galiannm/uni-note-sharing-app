@@ -17,4 +17,7 @@ public class NoteResponse {
    private String content;
    private Instant createdAt;
    private Instant updatedAt; 
+
+   private Long categoryId;
+   private String categoryName;
 }
