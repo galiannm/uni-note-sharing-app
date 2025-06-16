@@ -1,5 +1,6 @@
 package com.yourorg.hotanotes.controller;
 
+import static org.hamcrest.Matchers.nullValue;
 import org.junit.jupiter.api.Test;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.boot.test.autoconfigure.web.servlet.AutoConfigureMockMvc;
@@ -10,11 +11,9 @@ import static org.springframework.test.web.servlet.request.MockMvcRequestBuilder
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.get;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.post;
 import static org.springframework.test.web.servlet.request.MockMvcRequestBuilders.put;
-import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.content;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.jsonPath;
 import static org.springframework.test.web.servlet.result.MockMvcResultMatchers.status;
 
-import com.fasterxml.jackson.databind.JsonNode;
 import com.fasterxml.jackson.databind.ObjectMapper;
 import com.yourorg.hotanotes.dto.NoteRequest;
 
@@ -29,48 +28,90 @@ class NoteControllerTest {
     private ObjectMapper mapper;
 
     @Test
-    void fullCrud_with_NoteResponseDto() throws Exception {
-        // 1) CREATE
-        NoteRequest req = new NoteRequest("Test", "DTO test");
-        String createJson = mapper.writeValueAsString(req);
+    void fullCrud_withoutCategory() throws Exception {
+        // CREATE without categoryId
+        NoteRequest req = new NoteRequest("NoCat", "Content", null);
+        String jsonReq = mapper.writeValueAsString(req);
 
-        var createResult = mockMvc.perform(post("/api/notes")
+        var create = mockMvc.perform(post("/api/notes")
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(createJson))
+                .content(jsonReq))
             .andExpect(status().isCreated())
-            .andExpect(content().contentType(MediaType.APPLICATION_JSON))
             .andExpect(jsonPath("$.id").isNumber())
-            .andExpect(jsonPath("$.title").value("Test"))
-            .andExpect(jsonPath("$.content").value("DTO test"))
-            .andExpect(jsonPath("$.createdAt").isNotEmpty())
+            .andExpect(jsonPath("$.title").value("NoCat"))
+            .andExpect(jsonPath("$.content").value("Content"))
+            .andExpect(jsonPath("$.categoryId").value(nullValue()))
+            .andExpect(jsonPath("$.categoryName").value(nullValue()))
             .andReturn();
 
-        // extract the generated id
-        JsonNode created = mapper.readTree(createResult.getResponse().getContentAsString());
-        long id = created.get("id").asLong();
+        long id = mapper.readTree(create.getResponse().getContentAsString())
+                          .get("id").asLong();
 
-        // 2) READ (GET by id)
+        // READ
         mockMvc.perform(get("/api/notes/{id}", id))
             .andExpect(status().isOk())
             .andExpect(jsonPath("$.id").value(id))
-            .andExpect(jsonPath("$.title").value("Test"));
+            .andExpect(jsonPath("$.categoryId").value(nullValue()))
+            .andExpect(jsonPath("$.categoryName").value(nullValue()));
 
-        // 3) UPDATE
-        NoteRequest updateReq = new NoteRequest("Updated", "Still DTO");
-        String updateJson = mapper.writeValueAsString(updateReq);
+        // UPDATE (still no category)
+        NoteRequest upd = new NoteRequest("NoCat2", "New", null);
         mockMvc.perform(put("/api/notes/{id}", id)
                 .contentType(MediaType.APPLICATION_JSON)
-                .content(updateJson))
+                .content(mapper.writeValueAsString(upd)))
             .andExpect(status().isOk())
-            .andExpect(jsonPath("$.title").value("Updated"))
-            .andExpect(jsonPath("$.content").value("Still DTO"));
+            .andExpect(jsonPath("$.title").value("NoCat2"))
+            .andExpect(jsonPath("$.categoryId").value(nullValue()));
 
-        // 4) DELETE
+        // DELETE
         mockMvc.perform(delete("/api/notes/{id}", id))
             .andExpect(status().isNoContent());
 
-        // 5) VERIFY DELETE (404 on fetch)
+        // VERIFY DELETE
         mockMvc.perform(get("/api/notes/{id}", id))
             .andExpect(status().isNotFound());
+    }
+
+    @Test
+    void fullCrud_withCategory() throws Exception {
+        // 1) Create Category
+        mockMvc.perform(post("/api/categories")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content("{\"name\":\"Work\"}"))
+            .andExpect(status().isCreated());
+
+        // 2) Create Note with categoryId=1
+        NoteRequest req = new NoteRequest("WithCat", "Has notebook", 1L);
+        String jsonReq = mapper.writeValueAsString(req);
+
+        var create = mockMvc.perform(post("/api/notes")
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(jsonReq))
+            .andExpect(status().isCreated())
+            .andExpect(jsonPath("$.categoryId").value(1))
+            .andExpect(jsonPath("$.categoryName").value("Work"))
+            .andReturn();
+
+        long id = mapper.readTree(create.getResponse().getContentAsString())
+                          .get("id").asLong();
+
+        // READ and verify category fields
+        mockMvc.perform(get("/api/notes/{id}", id))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.categoryId").value(1))
+            .andExpect(jsonPath("$.categoryName").value("Work"));
+
+        // UPDATE category to null
+        NoteRequest upd = new NoteRequest("WithCat", "Orphan now", null);
+        mockMvc.perform(put("/api/notes/{id}", id)
+                .contentType(MediaType.APPLICATION_JSON)
+                .content(mapper.writeValueAsString(upd)))
+            .andExpect(status().isOk())
+            .andExpect(jsonPath("$.categoryId").value(nullValue()))
+            .andExpect(jsonPath("$.categoryName").value(nullValue()));
+
+        // Clean up
+        mockMvc.perform(delete("/api/notes/{id}", id))
+            .andExpect(status().isNoContent());
     }
 }

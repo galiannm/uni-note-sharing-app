@@ -18,4 +18,6 @@ public class NoteRequest {
 
     @NotBlank(message = "Content is required")
     private String content;
+
+    private Long categoryId;
 }
