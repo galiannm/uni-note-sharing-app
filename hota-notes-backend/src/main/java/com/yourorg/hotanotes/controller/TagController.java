@@ -21,7 +21,7 @@ import com.yourorg.hotanotes.service.TagService;
 public class TagController {
     private final TagService service;
 
-    public TagController(TagService service){
+    public TagController(TagService service) {
         this.service = service;
     }
 
@@ -29,12 +29,12 @@ public class TagController {
     public List<Tag> all() {
         return service.findAll();
     }
-    
+
     @GetMapping("/{id}")
     public Tag one(@PathVariable Long id) {
         return service.findById(id);
     }
-    
+
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
     public Tag create(@RequestBody Tag tag) {

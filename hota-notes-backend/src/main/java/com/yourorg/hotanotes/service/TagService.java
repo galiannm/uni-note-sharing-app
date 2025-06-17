@@ -22,7 +22,7 @@ public class TagService {
 
     public Tag findById(Long id) {
         return repo.findById(id)
-                .orElseThrow(() -> new ResourceNotFoundException("Note not found with id" + id));
+            .orElseThrow(() -> new ResourceNotFoundException("Tag not found with id " + id));
     }
 
     public Tag save(Tag tag) {
@@ -32,11 +32,11 @@ public class TagService {
     public Tag update(Long id, Tag updated) {
         Tag existing = findById(id);
         existing.setName(updated.getName());
-        return repo.save(existing); 
+        return repo.save(existing);
     }
 
-    public void delete(Long id){
-        Tag existing = findById(id); 
+    public void delete(Long id) {
+        Tag existing = findById(id);
         repo.delete(existing);
     }
-}   
+}

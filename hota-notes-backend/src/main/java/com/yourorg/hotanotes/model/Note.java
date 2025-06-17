@@ -1,6 +1,8 @@
 package com.yourorg.hotanotes.model;
 
 import java.time.Instant;
+import java.util.HashSet;
+import java.util.Set;
 
 import jakarta.persistence.Column;
 import jakarta.persistence.Entity;
@@ -9,7 +11,9 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.JoinColumn;
+import jakarta.persistence.JoinTable;
 import jakarta.persistence.Lob;
+import jakarta.persistence.ManyToMany;
 import jakarta.persistence.ManyToOne;
 import jakarta.persistence.PrePersist;
 import jakarta.persistence.PreUpdate;
@@ -39,6 +43,15 @@ public class Note {
     @ManyToOne(fetch=FetchType.LAZY, optional=true)
     @JoinColumn(name="category_id")
     private Category category;
+
+    @ManyToMany
+    @JoinTable(
+        name = "note_tags",
+        joinColumns = @JoinColumn(name = "note_id"),
+        inverseJoinColumns = @JoinColumn(name = "tag_id")
+    )
+    @Builder.Default
+    private Set<Tag> tags = new HashSet<>();
 
     @Column(name = "created_at", updatable = false)
     private Instant createdAt;

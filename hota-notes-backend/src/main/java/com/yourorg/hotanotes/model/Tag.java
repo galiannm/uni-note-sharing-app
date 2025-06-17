@@ -25,14 +25,14 @@ import lombok.NoArgsConstructor;
 @AllArgsConstructor
 @Builder
 public class Tag {
-    @Id 
-    @GeneratedValue(strategy=GenerationType.IDENTITY)
+    @Id
+    @GeneratedValue(strategy = GenerationType.IDENTITY)
     private Long id;
 
-    @Column(nullable=false, unique=true)
+    @Column(nullable = false, unique = true)
     private String name;
 
-    @ManyToMany(mappedBy="tags")
+    @ManyToMany(mappedBy = "tags")
     @Builder.Default
     private Set<Note> notes = new HashSet<>();
 
@@ -45,12 +45,25 @@ public class Tag {
     @PrePersist
     protected void onCreate() {
         Instant now = Instant.now();
-        this.createdAt = now;
-        this.updatedAt = now;
+        createdAt = now;
+        updatedAt = now;
     }
 
     @PreUpdate
     protected void onUpdate() {
-        this.updatedAt = Instant.now();
+        updatedAt = Instant.now();
+    }
+
+    // IMPORTANT: exclude 'notes' from equals/hashCode to avoid lazy-init errors
+    @Override
+    public boolean equals(Object o) {
+        if (this == o) return true;
+        if (!(o instanceof Tag)) return false;
+        return id != null && id.equals(((Tag) o).getId());
+    }
+
+    @Override
+    public int hashCode() {
+        return 31;
     }
 }

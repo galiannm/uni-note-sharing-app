@@ -29,8 +29,8 @@ class NoteControllerTest {
 
     @Test
     void fullCrud_withoutCategory() throws Exception {
-        // CREATE without categoryId
-        NoteRequest req = new NoteRequest("NoCat", "Content", null);
+        // CREATE without categoryId and without tags
+        NoteRequest req = new NoteRequest("NoCat", "Content", null, null);
         String jsonReq = mapper.writeValueAsString(req);
 
         var create = mockMvc.perform(post("/api/notes")
@@ -54,8 +54,8 @@ class NoteControllerTest {
             .andExpect(jsonPath("$.categoryId").value(nullValue()))
             .andExpect(jsonPath("$.categoryName").value(nullValue()));
 
-        // UPDATE (still no category)
-        NoteRequest upd = new NoteRequest("NoCat2", "New", null);
+        // UPDATE (still no category, still no tags)
+        NoteRequest upd = new NoteRequest("NoCat2", "New", null, null);
         mockMvc.perform(put("/api/notes/{id}", id)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(mapper.writeValueAsString(upd)))
@@ -80,8 +80,8 @@ class NoteControllerTest {
                 .content("{\"name\":\"Work\"}"))
             .andExpect(status().isCreated());
 
-        // 2) Create Note with categoryId=1
-        NoteRequest req = new NoteRequest("WithCat", "Has notebook", 1L);
+        // 2) Create Note with categoryId=1 and no tags
+        NoteRequest req = new NoteRequest("WithCat", "Has notebook", 1L, null);
         String jsonReq = mapper.writeValueAsString(req);
 
         var create = mockMvc.perform(post("/api/notes")
@@ -101,8 +101,8 @@ class NoteControllerTest {
             .andExpect(jsonPath("$.categoryId").value(1))
             .andExpect(jsonPath("$.categoryName").value("Work"));
 
-        // UPDATE category to null
-        NoteRequest upd = new NoteRequest("WithCat", "Orphan now", null);
+        // UPDATE category to null and keep no tags
+        NoteRequest upd = new NoteRequest("WithCat", "Orphan now", null, null);
         mockMvc.perform(put("/api/notes/{id}", id)
                 .contentType(MediaType.APPLICATION_JSON)
                 .content(mapper.writeValueAsString(upd)))

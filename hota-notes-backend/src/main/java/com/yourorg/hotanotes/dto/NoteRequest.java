@@ -1,5 +1,7 @@
 package com.yourorg.hotanotes.dto;
 
+import java.util.Set;
+
 import jakarta.validation.constraints.NotBlank;
 import jakarta.validation.constraints.Size;
 import lombok.AllArgsConstructor;
@@ -20,4 +22,6 @@ public class NoteRequest {
     private String content;
 
     private Long categoryId;
+
+    private Set<Long> tagIds;
 }
