@@ -113,5 +113,8 @@ class NoteControllerTest {
         // Clean up
         mockMvc.perform(delete("/api/notes/{id}", id))
             .andExpect(status().isNoContent());
+
+        mockMvc.perform(delete("/api/categories/{id}", 1L))
+            .andExpect(status().isNoContent());
     }
 }
