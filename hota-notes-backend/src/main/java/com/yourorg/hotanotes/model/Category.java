@@ -34,7 +34,7 @@ public class Category {
     @Column(nullable=false, unique=true)
     private String name;
 
-    // defiines the relationship with notes: category gets deleted -> notes get deleted ('cascade')
+    // defines the relationship with notes: category gets deleted -> notes get deleted ('cascade')
     @OneToMany(mappedBy="category", cascade=CascadeType.ALL, orphanRemoval=true)
     @Builder.Default
     private List<Note> notes = new ArrayList<>();

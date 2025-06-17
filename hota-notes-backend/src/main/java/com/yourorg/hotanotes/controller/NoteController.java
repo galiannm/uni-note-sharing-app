@@ -1,6 +1,7 @@
 package com.yourorg.hotanotes.controller;
 
 import java.util.List;
+import java.util.Set;
 import java.util.stream.Collectors;
 
 import org.springframework.http.HttpStatus;
@@ -16,107 +17,129 @@ import org.springframework.web.bind.annotation.RestController;
 
 import com.yourorg.hotanotes.dto.NoteRequest;
 import com.yourorg.hotanotes.dto.NoteResponse;
-import com.yourorg.hotanotes.model.Note;
 import com.yourorg.hotanotes.model.Category;
+import com.yourorg.hotanotes.model.Note;
+import com.yourorg.hotanotes.model.Tag;
 import com.yourorg.hotanotes.service.CategoryService;
 import com.yourorg.hotanotes.service.NoteService;
-
-import jakarta.validation.Valid;
+import com.yourorg.hotanotes.service.TagService;
 
 @RestController
 @RequestMapping("/api/notes")
 public class NoteController {
-    private final NoteService service;
-    private final CategoryService categoryService;
 
-    public NoteController(NoteService service, CategoryService categoryService) {
-        this.service = service;
+    private final NoteService noteService;
+    private final CategoryService categoryService;
+    private final TagService tagService;
+
+    public NoteController(NoteService noteService,
+                          CategoryService categoryService,
+                          TagService tagService) {
+        this.noteService = noteService;
         this.categoryService = categoryService;
+        this.tagService = tagService;
     }
 
-    // GET /api/notes
     @GetMapping
     public List<NoteResponse> all() {
-        return service.findAll().stream()
-            .map(this::toDto)
-            .collect(Collectors.toList());
+        return noteService.findAll().stream()
+                .map(this::toDto)
+                .collect(Collectors.toList());
     }
 
-    // GET /api/notes/{id}
     @GetMapping("/{id}")
     public NoteResponse one(@PathVariable Long id) {
-        return toDto(service.findById(id));
+        Note note = noteService.findById(id);
+        return toDto(note);
     }
 
-    // POST /api/notes  → create
     @PostMapping
     @ResponseStatus(HttpStatus.CREATED)
-    public NoteResponse create(@Valid @RequestBody NoteRequest req) {
-        // fetch category (or null if none provided)
-        Category category = null;
-        if (req.getCategoryId() != null) {
-            category = categoryService.findById(req.getCategoryId());
-        }
-    
-        // build and save
-        Note saved = service.save(
-          Note.builder()
-              .title(req.getTitle())
-              .content(req.getContent())
-              .category(category)        
-              .build()
-        );
+    public NoteResponse create(@RequestBody NoteRequest req) {
+        Note saved = noteService.save(toEntity(req));
         return toDto(saved);
     }
-    
 
-    // PUT /api/notes/{id}  → update
     @PutMapping("/{id}")
-    public NoteResponse update(
-        @PathVariable Long id,
-        @Valid @RequestBody NoteRequest req
-    ) {
-        Category category = null;
-        if (req.getCategoryId() != null) {
-            category = categoryService.findById(req.getCategoryId());
-        }
-    
-        Note updated = service.update(
-          id,
-          Note.builder()
-              .title(req.getTitle())
-              .content(req.getContent())
-              .category(category)         // ← and here
-              .build()
-        );
-        return toDto(updated);
-    }    
+    public NoteResponse update(@PathVariable Long id,
+                               @RequestBody NoteRequest req) {
+        Note existing = noteService.findById(id);
 
-    // DELETE /api/notes/{id}
+        existing.setTitle(req.getTitle());
+        existing.setContent(req.getContent());
+
+        if (req.getCategoryId() != null) {
+            Category cat = categoryService.findById(req.getCategoryId());
+            existing.setCategory(cat);
+        } else {
+            existing.setCategory(null);
+        }
+
+        if (req.getTagIds() != null) {
+            Set<Tag> tags = req.getTagIds().stream()
+                    .map(tagService::findById)
+                    .collect(Collectors.toSet());
+            existing.setTags(tags);
+        } else {
+            existing.getTags().clear();
+        }
+
+        Note updated = noteService.save(existing);
+        return toDto(updated);
+    }
+
     @DeleteMapping("/{id}")
     @ResponseStatus(HttpStatus.NO_CONTENT)
     public void delete(@PathVariable Long id) {
-        service.delete(id);
+        noteService.delete(id);
     }
 
-    // helper to map your JPA entity → DTO
+    private Note toEntity(NoteRequest req) {
+        Note note = new Note();
+        note.setTitle(req.getTitle());
+        note.setContent(req.getContent());
+
+        if (req.getCategoryId() != null) {
+            Category cat = categoryService.findById(req.getCategoryId());
+            note.setCategory(cat);
+        }
+
+        if (req.getTagIds() != null) {
+            Set<Tag> tags = req.getTagIds().stream()
+                    .map(tagService::findById)
+                    .collect(Collectors.toSet());
+            note.setTags(tags);
+        }
+
+        return note;
+    }
+
     private NoteResponse toDto(Note note) {
-        return NoteResponse.builder()
-            .id(note.getId())
-            .title(note.getTitle())
-            .content(note.getContent())
-            .createdAt(note.getCreatedAt())
-            .updatedAt(note.getUpdatedAt())
-            .categoryId(
-                note.getCategory() != null
-                ? note.getCategory().getId()
-                : null
-            )
-            .categoryName(
-                note.getCategory() != null
-                ? note.getCategory().getName()
-                : null
-            )
-            .build();
-    }    
+        NoteResponse dto = new NoteResponse();
+        dto.setId(note.getId());
+        dto.setTitle(note.getTitle());
+        dto.setContent(note.getContent());
+        dto.setCreatedAt(note.getCreatedAt());
+        dto.setUpdatedAt(note.getUpdatedAt());
+
+        if (note.getCategory() != null) {
+            dto.setCategoryId(note.getCategory().getId());
+            dto.setCategoryName(note.getCategory().getName());
+        }
+
+        if (note.getTags() != null && !note.getTags().isEmpty()) {
+            dto.setTagIds(
+                note.getTags().stream()
+                    .map(Tag::getId)
+                    .collect(Collectors.toSet())
+            );
+            dto.setTagNames(
+                note.getTags().stream()
+                    .map(Tag::getName)
+                    .collect(Collectors.toSet())
+            );
+        }
+
+        return dto;
+    }
 }

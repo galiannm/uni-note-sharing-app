@@ -1,6 +1,7 @@
 package com.yourorg.hotanotes.dto;
 
 import java.time.Instant;
+import java.util.Set;
 
 import lombok.AllArgsConstructor;
 import lombok.Builder;
@@ -20,4 +21,7 @@ public class NoteResponse {
 
    private Long categoryId;
    private String categoryName;
+
+   private Set<Long> tagIds;
+   private Set<String> tagNames;
 }
